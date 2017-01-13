@@ -9,6 +9,7 @@ The Moses word graph is obtained by adding the flags "-osg FILE" to Moses. Its f
 1 hyp=977 stack=2 back=76 score=-1.721 transition=-1.221 recombined=1457 forward=4021 fscore=-1.405 covered=2-2 out=everything the
 ...
 '''
+import os
 import re
 import sys
 import argparse
@@ -32,23 +33,32 @@ import theano
 from arcscorer import ArcScorer
 from lattice import *
 
-def main(models, source_file, nbest_file, saveto, b=80,
+def main(models, source_file, graph_file, saveto, b=80,
          normalize=False, verbose=False, alignweights=False):
 
     sourcelines = source_file.readlines()
-
-    graph = read_graph(nbest_file, 0)
 
     scorer = None
     if models is not None and len(models) > 0:
         scorer = ArcScorer(models[0])
 
-        # TODO: loop over all graphs
-    if (scorer):
-        scorer.set_source_sentence(sourcelines[0])
+    graph_files = []
+    if '{}' in graph_file:
+        sentno = 0
+        while os.path.exists(graph_file.format(sentno)):
+            graph_files.append(graph_file.format(sentno))
+            sentno += 1
+    else:
+        graph_files.append(graph_file)
 
-    graph.walk(scorer)
+    for i,graph_file in enumerate(graph_files):
+        graph = read_graph(open(graph_file), i)
 
+        if (scorer):
+            scorer.set_source_sentence(sourcelines[i])
+
+        graph.walk(scorer)
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', type=int, default=80,
@@ -61,12 +71,10 @@ if __name__ == "__main__":
     parser.add_argument('--source', '-s', type=argparse.FileType('r'),
                         required=True, metavar='PATH',
                         help="Source text file")
-    parser.add_argument('--input', '-i', type=argparse.FileType('r'),
-                        default=sys.stdin, metavar='PATH',
-                        help="Input n-best list file (default: standard input)")
-    parser.add_argument('--output', '-o', type=argparse.FileType('w'),
-                        default=sys.stdout, metavar='PATH',
-                        help="Output file (default: standard output)")
+    parser.add_argument('--input', '-i', type=str,
+                        default='-', help="Input graph or graph pattern (default: standard input)")
+    parser.add_argument('--output', '-o', type=str,
+                        default='-', help="Output file (default: standard output)")
     parser.add_argument('--walign', '-w',required = False,action="store_true",
                         help="Whether to store the alignment weights or not. If specified, weights will be saved in <input>.alignment")
 
