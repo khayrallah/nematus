@@ -29,7 +29,7 @@ class ArcScorer(object):
         '''
         options = []
         try:
-            print '%s.json' % model
+            print 'Loading %s.json' % model
             with open('%s.json' % model, 'rb') as f:
                 options.append(json.load(f))
         except:
@@ -92,6 +92,9 @@ class ArcScorer(object):
         self.word_dict_trg = word_dict_trg
         self.word_idict_trg = word_idict_trg
 
+        self.nmt_state_init = None
+        self.nmt_context = None
+
         
     def src_sentence2id(self, sentence):
         return [[self.word_dict[w] for w in sentence.strip().split()]]
@@ -109,29 +112,46 @@ class ArcScorer(object):
     def set_source_sentence(self, sentence):
         seq = self.src_sentence2id(sentence)
         self.source_sentence = numpy.array(seq).T.reshape([len(seq[0]), len(seq), 1])
+        self.nmt_state_init, input_rep = self.f_init(self.source_sentence)
+        self.nmt_context = numpy.tile(input_rep, [1, 1])
+
 
     def init_for_graph(self):
-        next_state, ctx0 = self.f_init(self.source_sentence)
         next_w = -1 * numpy.ones((1,)).astype('int64')  # bos indicator
-        return next_state, ctx0, next_w
+        return self.nmt_state_init, next_w
 
 
-    def score_arc(self, word, S=None):
+    def score(self, state, arc):
         '''
         Given word and state, return P(word|state) and new state
         The state is a tuple (NMT_state, NMT_context, previous_word)
         '''
-        if S == None:
-            S = self.init_for_graph()
+        # arc.tail -> Node()
+        # arc.label -> str()
+        # arc.head -> Node()
+        # arc.score -> float()
 
-        nmt_state, nmt_context, prev_word = S
-        ctx = numpy.tile(nmt_context, [1, 1])
-        inps = [prev_word, ctx, nmt_state]
-        probdist, word_prediction, nmt_state_next = self.f_next(*inps)
-        word2 = numpy.array([word]).astype('int64')
-        prob = probdist[0][word]
-        return prob, (nmt_state_next, nmt_context, word2)
+        # If state was unset, default to the initial state
+        if state is None:
+            state = self.init_for_graph()
 
+        words = arc.label.split('_')
+
+        nmt_state, prev_word = state
+        logprob = 0.0
+        for word in words:
+            # pseudocode:
+            # words = arc.label
+            # word_ids = [self.word_dict_trg[w] for w in bpe(words.split)]
+
+            inps = [prev_word, self.nmt_context, nmt_state]
+            probdist, word_prediction, nmt_state_next = self.f_next(*inps)
+            word2 = numpy.array([word]).astype('int64')
+            logprob += math.log(probdist[0][word])
+
+            nmt_state, prev_word = nmt_state_next, word2
+
+        return prob, (nmt_state, prev_word)
 
 
 if __name__ == "__main__":
