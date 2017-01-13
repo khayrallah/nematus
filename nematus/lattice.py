@@ -36,19 +36,17 @@ class Node:
         return self.inarcs
 
 class Graph:
-    sentno = -1
-    root = None
-    nodes = {}
-    nodelist = []
-    arccount = 0
-    finalstate = -1
-
     def __str__(self):
         return `self.sentno`
 
     def __init__(self, sentno):
         self.sentno = sentno
-        root = self.node(0)
+        self.root = None
+        self.nodelist = []
+        self.arccount = 0
+        self.finalstate = -1
+        self.nodes = {}
+        self.root = self.node(0)
 
     def id(self):
         return self.sentno
@@ -113,7 +111,7 @@ class Graph:
             seq.insert(0, arc.label)
             node = arc.tail
 
-        print states[self.node(self.finalstate)][0], ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
+        print self.sentno, states[self.node(self.finalstate)][0], ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
 
 
 def read_graph(search_graph_file, sentno = 0):
