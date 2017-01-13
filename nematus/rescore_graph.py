@@ -110,40 +110,35 @@ class Graph:
         # for each node, the best state, the word that produced it, and the cumulative score
         states = {}
         for node in self.nodelist:
-            print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
+#            print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
             best = (-999999, None, None)
             for arc in node.getIncomingArcs():
-                if states.has_key(arc.tail):
-                    oldscore, state, word = states[arc.tail]
-                else:
-                    print "NOT FOUND"
-                    oldscore = 0
-                    state = None
-                    word = ""
+                oldscore, state, word = states.get(arc.tail, (0, None, ""))
 
                 newstate, transitioncost = scorer.score(state, arc)
                 score = oldscore + transitioncost
 
-                print '  {} -> {}'.format(arc, score)
+#                print '  {} -> {}'.format(arc, score)
                 if score > best[0]:
-                    print '  new best ({} > {})'.format(score, best[0])
+#                    print '  new best ({} > {})'.format(score, best[0])
                     best = (score, newstate, arc)
-                else:
-                    print '  old is better ({} < {})'.format(score, best[0])
+                # else:
+                #     print '  old is better ({} < {})'.format(score, best[0])
 
             if best[2] is not None:
                 states[node] = best
                 arc = best[2]
-                print 'best -> {} is {} ({})'.format(arc.head, arc.label, arc.score)
+                # print 'best -> {} is {} ({})'.format(arc.head, arc.label, arc.score)
 
         node = self.node(self.finalstate)
-        print 'best modelscore =', states[node][0]
+        # print 'best modelscore =', states[node][0]
         seq = []
-        while node is not None:
+        while node.id != 0:
             score, state, arc = states.get(node)
             seq.insert(0, arc.label)
-            print '**', arc.label
             node = arc.tail
+
+        print states[self.node(self.finalstate)][0], ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
 
 def walk_graph(graph, scorer):
     """
@@ -175,7 +170,7 @@ def read_graph(search_graph_file, sentno = 0):
         head = int(head)
         graph.addArc(tail, target, head, -float(score))
 
-    print "graph[->{}] {} has {} nodes and {} arcs".format(graph.finalstate, graph.id(), graph.numnodes(), graph.numarcs())
+#    print "graph[->{}] {} has {} nodes and {} arcs".format(graph.finalstate, graph.id(), graph.numnodes(), graph.numarcs())
     return graph
 
 
