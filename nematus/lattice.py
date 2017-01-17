@@ -17,6 +17,9 @@ class Arc:
         self.head = head
         self.score = float(score)
 
+    def numWords(self):
+        return len(self.label.split('_'))
+
 class Node:
     def __init__(self, id = 0):
         self.id = id
@@ -78,59 +81,65 @@ class Graph:
 
             
 
-    def walk(self, scorer = None):
+    def walk(self, scorer = None, normalize = True):
 
         class BestItem:
             '''Data structure for recording best item in graph'''
 
-            def __init__(self, score=-999999, state=None, arc=None):
+            def __init__(self, score=-999999, state=None, arc=None, pathLength = 0):
                 self.score = score
                 self.state = state
                 self.arc = arc
+                self.pathLength = pathLength
 
             def normalizedScore(self):
-                return self.score/self.state['path_length']
-
+                if self.pathLength > 0:
+                    return self.score
+                else:
+                    return self.score / self.pathLength
 
         if scorer is None:
             scorer = self
 
         # for each node, the best state, the word that produced it, and the cumulative score
-        states = {}
+        bestitems = {}
         for node in self.nodelist:
             print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
             
             best = BestItem()
             for arc in node.getIncomingArcs():
-                #oldscore, state, word = states.get(arc.tail, )
-                prevBest = states.get(arc.tail, BestItem())
+                prevBest = bestitems.get(arc.tail, BestItem())
                 oldscore, state = prevBest.score, prevBest.state
                 
                 newstate, transitioncost = scorer.score(state, arc)
                 score = oldscore + transitioncost
-                normalizedScore = score/float(newstate['path_length']) # divide by path length
+                pathLength = prevBest.pathLength + arc.numWords()
 
                 print '  {} -> {}'.format(arc, score)
-                if normalizedScore > best.normalizedScore():
-                    print '  new best ({} > {})'.format(score, best[0])
-                    #best = (score, newstate, arc)
-                    best = BestItem(score, newstate, arc)
-                # else:
-                #     print '  old is better ({} < {})'.format(score, best[0])
+                if normalize:
+                    normalizedScore = score / pathLength
+                    if normalizedScore > best.normalizedScore():
+                        print '  new best ({} > {})'.format(normalizedScore, best.score)
+                        best = BestItem(score, newstate, arc, pathLength)
+
+                else:
+                    if score > best.score:
+                        print '  new best ({} > {})'.format(score, best.score)
+                        best = BestItem(score, newstate, arc, pathLength)
 
             if best.arc is not None:
-                states[node] = best
+                bestitems[node] = best
                 #print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
 
         node = self.node(self.finalstate)
-        # print 'best modelscore =', states[node][0]
+        # print 'best modelscore =', bestitems[node][0]
         seq = []
         while node.id != 0:
-            score, state, arc = states.get(node)
+            score, state, arc = bestitems.get(node)
             seq.insert(0, arc.label)
             node = arc.tail
 
-        print self.sentno, states[self.node(self.finalstate)][0], ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
+        print self.sentno, bestitems[self.node(self.finalstate)][0], ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
 
 
 def read_graph(search_graph_file, sentno = 0):
