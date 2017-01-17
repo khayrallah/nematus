@@ -86,7 +86,7 @@ class Graph:
         class BestItem:
             '''Data structure for recording best item in graph'''
 
-            def __init__(self, score=-999999, state=None, arc=None, pathLength = 0):
+            def __init__(self, score=-999999.0, state=None, arc=None, pathLength = 0):
                 self.score = score
                 self.state = state
                 self.arc = arc
@@ -94,9 +94,9 @@ class Graph:
 
             def normalizedScore(self):
                 if self.pathLength > 0:
-                    return self.score
+                    return self.score / float(self.pathLength)
                 else:
-                    return self.score / self.pathLength
+                    return self.score
 
         if scorer is None:
             scorer = self
@@ -108,7 +108,7 @@ class Graph:
             
             best = BestItem()
             for arc in node.getIncomingArcs():
-                prevBest = bestitems.get(arc.tail, BestItem(score = 0))
+                prevBest = bestitems.get(arc.tail, BestItem(score = 0.))
                 oldscore, state = prevBest.score, prevBest.state
                 
                 newstate, transitioncost = scorer.score(state, arc)
@@ -117,7 +117,7 @@ class Graph:
 
                 print '  {} -> {}'.format(arc, score)
                 if normalize:
-                    normalizedScore = score / pathLength
+                    normalizedScore = score / float(pathLength)
                     if normalizedScore > best.normalizedScore():
                         print '  new best ({} > {})'.format(normalizedScore, best.score)
                         best = BestItem(score, newstate, arc, pathLength)
