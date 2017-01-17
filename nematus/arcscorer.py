@@ -155,7 +155,7 @@ class ArcScorer(object):
 
                 # accumulate log probabilities
                 logprob += numpy.log(probdist[0][word])
-                # print "%s \t P(%s|%s...)=%f cumulativeLogProb=%f" %(arc, word_str, probdist[0][word], logprob)
+#                print "%s \t P(%s|...)=%f cumulativeLogProb=%f" %(arc, word_str, probdist[0][word], logprob)
 
                 # reset NMT state and previously decoded word
                 nmt_state = nmt_state_next
