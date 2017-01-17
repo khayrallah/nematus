@@ -132,14 +132,14 @@ class Graph:
                 #print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
 
         # Now follow the backpointers to construct the final sentence
-        node = self.node(self.finalstate)
+        finalnode = self.node(self.finalstate)
         seq = []
         while node.id != 0:
             arc = bestitems.get(node).arc
             seq.insert(0, arc.label)
             node = arc.tail
 
-        print self.sentno, bestitems[self.node(self.finalstate)][0], ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
+        print self.sentno, bestitems.get(finalnode).score, ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
 
 
 def read_graph(search_graph_file, sentno = 0):
