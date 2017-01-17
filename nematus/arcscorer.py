@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import sys
 import argparse
@@ -19,7 +18,7 @@ class ArcScorer(object):
     
     def __init__(self, model):
         '''Loads a Nematus NMT model
-        Returns
+        Sets the following fields in self:
         - f_init: NMT initialization function
         - f_next: NMT next function
         - word_dict: source mapping of word to id
@@ -97,10 +96,12 @@ class ArcScorer(object):
 
         
     def src_sentence2id(self, sentence):
-        return [[self.word_dict[w] for w in sentence.strip().split()]]
+        '''Convert source sentence into sequence of id's'''
+        return [[self.word_dict[w] if w in self.word_dict else 1 for w in sentence.strip().split()]]
 
 
     def trg_id2sentence(self, id_list):
+        '''Convert sequence of target id's into sentence'''
         ww = []
         for w in id_list:
             if w == 0:
@@ -110,74 +111,56 @@ class ArcScorer(object):
 
 
     def set_source_sentence(self, sentence):
+        '''This function needs to be called before running score()
+        Given a source sentence, it creates the initial NMT decoder state (self.nmt_state_init) as well as the bidirectional RNN encoding of the input context (self.nmt_context) by running f_init
+        '''
         seq = self.src_sentence2id(sentence)
+        print "Set NMT src sent:", sentence, seq
         self.source_sentence = numpy.array(seq).T.reshape([len(seq[0]), len(seq), 1])
         self.nmt_state_init, input_rep = self.f_init(self.source_sentence)
         self.nmt_context = numpy.tile(input_rep, [1, 1])
 
 
-    def init_for_graph(self):
-        next_w = -1 * numpy.ones((1,)).astype('int64')  # bos indicator
-        return self.nmt_state_init, next_w
-
-
     def score(self, state, arc):
         '''
-        Given word and state, return P(word|state) and new state
-        The state is a tuple (NMT_state, NMT_context, previous_word)
+        Given state and arc, return:
+        - new state after decoding the word(s) given in arc.label
+        - logProbability(word=arc.label | state, source_sentence) under the NMT model.
+        Note: a state here is is a tuple (NMT_state, previously_decoded_word)
         '''
-        # arc.tail -> Node()
-        # arc.label -> str()
-        # arc.head -> Node()
-        # arc.score -> float()
 
         # If state was unset, default to the initial state
         if state is None:
-            state = self.init_for_graph()
+            bos = -1 * numpy.ones((1,)).astype('int64') # beginning of sentence indicator
+            state = (self.nmt_state_init, bos)
 
-        words = arc.label.split('_')
-
-        nmt_state, prev_word = state
         logprob = 0.0
-        for word in words:
-            # pseudocode:
-            # words = arc.label
-            # word_ids = [self.word_dict_trg[w] for w in bpe(words.split)]
+        nmt_state, prev_word = state
+        words = arc.label.split('_') # there may be multiple words in an arc, so process each successively
+        for word_str in words:
 
-            inps = [prev_word, self.nmt_context, nmt_state]
-            probdist, word_prediction, nmt_state_next = self.f_next(*inps)
-            word2 = numpy.array([word]).astype('int64')
-            logprob += math.log(probdist[0][word])
+            # if label is epsilon, do nothing (logprob+=0); else run NMT step
+            if word_str != '<eps>':
 
-            nmt_state, prev_word = nmt_state_next, word2
+                if word_str in self.word_dict_trg:
+                    word = self.word_dict_trg[word_str]
+                else:
+                    # NOTE: we might want to throw an exception rather than process UNK, depending on situation
+                    word = self.word_dict_trg["UNK"]
 
-        return prob, (nmt_state, prev_word)
+                # run one forward step of f_next(), 
+                # returns probability distribution of next word, most probable next word, and the new NMT state
+                inps = [prev_word, self.nmt_context, nmt_state]
+                probdist, word_prediction, nmt_state_next = self.f_next(*inps)
+
+                # accumulate log probabilities
+                logprob += numpy.log(probdist[0][word])
+                # print "%s \t P(%s|%s...)=%f cumulativeLogProb=%f" %(arc, word_str, probdist[0][word], logprob)
+
+                # reset NMT state and previously decoded word
+                nmt_state = nmt_state_next
+                prev_word = numpy.array([word]).astype('int64')
 
 
-if __name__ == "__main__":
-    model='/home/hltcoe/kduh/p/mt/nmt_kftt/model/ja5000-en5000/exp1-400-100.npz'
-    scorer = ArcScorer(model)
-    seq = scorer.src_sentence2id("曹@@ 洞 宗 の 開祖 。")
-    print "Input", seq
-    scorer.set_source_sentence("曹@@ 洞 宗 の 開祖 。")
-
-
-    sample, score, word_probs, alignment = gen_sample([scorer.f_init], [scorer.f_next], numpy.array(seq).T.reshape([len(seq[0]), len(seq), 1]), trng=trng, k=1, maxlen=200, stochastic=False, argmax=False, return_alignment=False, suppress_unk=True)
-
-
-
-    print "Output", sample[0]
-    print scorer.trg_id2sentence(sample[0])
-
-    def emulate(output_sequence):
-        ss=None
-        pps = []
-        for i in range(len(output_sequence)):
-            ww = output_sequence[i]
-            pp,ss = scorer.score_arc(ww,S=ss)
-            pps.append(pp)
-        return pps
-
-    print emulate(sample[0])
-    print word_probs
+        return (nmt_state, prev_word), logprob
 
