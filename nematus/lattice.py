@@ -108,7 +108,7 @@ class Graph:
             
             best = BestItem()
             for arc in node.getIncomingArcs():
-                prevBest = bestitems.get(arc.tail, BestItem())
+                prevBest = bestitems.get(arc.tail, BestItem(score = 0))
                 oldscore, state = prevBest.score, prevBest.state
                 
                 newstate, transitioncost = scorer.score(state, arc)
