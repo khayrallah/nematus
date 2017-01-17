@@ -131,11 +131,11 @@ class Graph:
                 bestitems[node] = best
                 #print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
 
+        # Now follow the backpointers to construct the final sentence
         node = self.node(self.finalstate)
-        # print 'best modelscore =', bestitems[node][0]
         seq = []
         while node.id != 0:
-            score, state, arc = bestitems.get(node)
+            arc = bestitems.get(node).arc
             seq.insert(0, arc.label)
             node = arc.tail
 
