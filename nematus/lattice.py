@@ -76,32 +76,51 @@ class Graph:
         """The default scoring option. Returns the score read in on the arc, ignoring the old state and not returning a new one."""
         return None, arc.score
 
+            
+
     def walk(self, scorer = None):
+
+        class BestItem:
+            '''Data structure for recording best item in graph'''
+
+            def __init__(self, score=-999999, state=None, arc=None):
+                self.score = score
+                self.state = state
+                self.arc = arc
+
+            def normalizedScore(self):
+                return self.score/self.state['path_length']
+
+
         if scorer is None:
             scorer = self
 
         # for each node, the best state, the word that produced it, and the cumulative score
         states = {}
         for node in self.nodelist:
-#            print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
-            best = (-999999, None, None)
+            print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
+            
+            best = BestItem()
             for arc in node.getIncomingArcs():
-                oldscore, state, word = states.get(arc.tail, (0, None, ""))
-
+                #oldscore, state, word = states.get(arc.tail, )
+                prevBest = states.get(arc.tail, BestItem())
+                oldscore, state = prevBest.score, prevBest.state
+                
                 newstate, transitioncost = scorer.score(state, arc)
                 score = oldscore + transitioncost
+                normalizedScore = score/float(newstate['path_length']) # divide by path length
 
-#                print '  {} -> {}'.format(arc, score)
-                if score > best[0]:
-#                    print '  new best ({} > {})'.format(score, best[0])
-                    best = (score, newstate, arc)
+                print '  {} -> {}'.format(arc, score)
+                if normalizedScore > best.normalizedScore():
+                    print '  new best ({} > {})'.format(score, best[0])
+                    #best = (score, newstate, arc)
+                    best = BestItem(score, newstate, arc)
                 # else:
                 #     print '  old is better ({} < {})'.format(score, best[0])
 
-            if best[2] is not None:
+            if best.arc is not None:
                 states[node] = best
-                arc = best[2]
-                # print 'best -> {} is {} ({})'.format(arc.head, arc.label, arc.score)
+                #print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
 
         node = self.node(self.finalstate)
         # print 'best modelscore =', states[node][0]

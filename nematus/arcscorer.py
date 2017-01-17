@@ -132,10 +132,10 @@ class ArcScorer(object):
         # If state was unset, default to the initial state
         if state is None:
             bos = -1 * numpy.ones((1,)).astype('int64') # beginning of sentence indicator
-            state = (self.nmt_state_init, bos)
+            state = {'nmt_state':self.nmt_state_init, 'prev_word':bos, 'path_length':0}
 
         logprob = 0.0
-        nmt_state, prev_word = state
+        nmt_state, prev_word, path_length = state['nmt_state'], state['prev_word'], state['path_length']
         words = arc.label.split('_') # there may be multiple words in an arc, so process each successively
         for word_str in words:
 
@@ -160,7 +160,7 @@ class ArcScorer(object):
                 # reset NMT state and previously decoded word
                 nmt_state = nmt_state_next
                 prev_word = numpy.array([word]).astype('int64')
+                path_length += 1
 
-
-        return (nmt_state, prev_word), logprob
+        return {'nmt_state':nmt_state, 'prev_word':prev_word, 'path_length':path_length}, logprob
 
