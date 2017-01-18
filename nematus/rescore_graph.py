@@ -33,7 +33,7 @@ import theano
 from arcscorer import ArcScorer
 from lattice import *
 
-def main(models, source_file, graph_file, saveto, b=80,
+def main(models, source_file, graph_file, begin, end, saveto, b=80,
          normalize=False, verbose=False, alignweights=False):
 
     sourcelines = source_file.readlines()
@@ -43,15 +43,22 @@ def main(models, source_file, graph_file, saveto, b=80,
         scorer = ArcScorer(models[0])
 
     graph_files = []
-    if '{}' in graph_file:
+    if not '{}' in graph_file:
+        print "* FATAL: no {} pattern found in file spec"
+        sys.exit(1)
         sentno = 0
         while os.path.exists(graph_file.format(sentno)):
             graph_files.append(graph_file.format(sentno))
             sentno += 1
     else:
-        graph_files.append(graph_file)
+        for sentno in range(begin, end+1):
+            if not os.path.exists(graph_file.format(sentno)):
+                print "* FATAL: couldn't find file", graph_file.format(sentno)
+                sys.exit(1)
+            graph_files.append(graph_file.format(sentno))
 
-    for i,graph_file in enumerate(graph_files):
+    for i, graph_file in enumerate(graph_files, start=begin):
+        print "[{}] Processing graph file {}...".format(i, graph_file)
         graph = read_graph(open(graph_file), i)
 
         if (scorer):
@@ -75,10 +82,14 @@ if __name__ == "__main__":
                         default='-', help="Input graph or graph pattern (default: standard input)")
     parser.add_argument('--output', '-o', type=str,
                         default='-', help="Output file (default: standard output)")
-    parser.add_argument('--walign', '-w',required = False,action="store_true",
+    parser.add_argument('--walign', '-w', required = False,action="store_true",
                         help="Whether to store the alignment weights or not. If specified, weights will be saved in <input>.alignment")
+    parser.add_argument('-f', dest='begin', type=int, default=0,
+                        help="First sentence number")
+    parser.add_argument('-t', dest='end', type=int, default=999999,
+                        help="Last sentence number")
 
     args = parser.parse_args()
 
-    main(args.models, args.source, args.input,
+    main(args.models, args.source, args.input, args.begin, args.end,
          args.output, b=args.b, normalize=args.n, verbose=args.v, alignweights=args.walign)
