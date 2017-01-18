@@ -38,6 +38,23 @@ class Node:
     def getIncomingArcs(self):
         return self.inarcs
 
+
+class BestItem:
+    '''Data structure for recording best item in graph'''
+
+    def __init__(self, score=-999999.0, state=None, arc=None, pathLength = 0):
+        self.score = score
+        self.state = state
+        self.arc = arc
+        self.pathLength = pathLength
+
+    def normalizedScore(self):
+        if self.pathLength > 0:
+            return self.score / float(self.pathLength)
+        else:
+            return self.score
+
+
 class Graph:
     def __str__(self):
         return `self.sentno`
@@ -79,24 +96,7 @@ class Graph:
         """The default scoring option. Returns the score read in on the arc, ignoring the old state and not returning a new one."""
         return None, arc.score
 
-            
-
     def walk(self, scorer = None, normalize = True, verbose = False):
-
-        class BestItem:
-            '''Data structure for recording best item in graph'''
-
-            def __init__(self, score=-999999.0, state=None, arc=None, pathLength = 0):
-                self.score = score
-                self.state = state
-                self.arc = arc
-                self.pathLength = pathLength
-
-            def normalizedScore(self):
-                if self.pathLength > 0:
-                    return self.score / float(self.pathLength)
-                else:
-                    return self.score
 
         if scorer is None:
             scorer = self
