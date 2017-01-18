@@ -46,14 +46,19 @@ class Node:
 class BestItem:
     '''Data structure for recording best item in graph'''
 
-    def __init__(self, score=-999999.0, state=None, arc=None, pathLength = 0):
+    def __init__(self, score=-999999.0, state=None, arc=None, pathLength=0, prevBest=None):
         self.score = score
         self.state = state
         self.arc = arc
         self.pathLength = pathLength
+        self.prev = prevBest
+
+    def __str__(self):
+        return 'ITEM[{}, {}, {}]'.format(self.arc, self.pathLength, self.score)
 
     def __lt__(self, other):
-        return self.score < other.score
+        """Actually returns greater than."""
+        return self.score > other.score
 
     def normalizedScore(self):
         if self.pathLength > 0:
@@ -114,17 +119,18 @@ class Graph:
         heaps = []
         heaps.append([ BestItem(score = 0.) ])
 
+        # Any time we encounter a final state, it gets added here
+        finalitems = []
+
         # iterate over the stacks
-        stackno = 0
-        while len(heaps[stackno]) > 0:
-            heap = heaps[stackno]
-            stackno += 1
+        heapno = 0
+        while heapno < len(heaps):
+            heap = heaps[heapno]
+            if verbose: print "STACK {} WITH {} ITEMS".format(heapno, len(heap))
 
             # Pop items off the stack, extending hypotheses and adding them into later stacks
             beam_i = 0
             while beam_i < beam and len(heap) > 0:
-                beam_i += 1
-
                 # Get the next item
                 item = heappop(heap)
                 if item.arc is not None:
@@ -132,22 +138,42 @@ class Graph:
                 else:
                     node = self.nodelist[0]
 
+                if verbose: print "BEAM: POP {} -> {} ({} arcs)".format(beam_i, item, len(node.getOutgoingArcs()))
+
                 # Add its extensions
                 for arc in node.getOutgoingArcs():
                     newstate, transitioncost = scorer.score(item.state, arc)
                     score = item.score + transitioncost
                     pathLength = item.pathLength + arc.numWords()
 
-                    nextstackno = stackno + arc.numWords()
+                    nextstackno = heapno + arc.numWords()
                     while len(heaps) <= nextstackno:
                         heaps.append([])
 
-                    heappush(heaps[nextstackno], BestItem(score, newstate, arc, pathLength))
+                    nextitem = BestItem(score, newstate, arc, pathLength, item)
+
+                    if len(arc.head.getOutgoingArcs()) == 0:
+                        heappush(finalitems, nextitem)
+                    else:
+                        heappush(heaps[nextstackno], nextitem)
 
                     if verbose: print '  {} -> {}'.format(arc, score)
-                
 
-    def walk(self, scorer = None, normalize = True, verbose = False):
+                beam_i += 1
+
+            heapno += 1
+
+        finalitem = heappop(finalitems)
+        item = finalitem
+        words = []
+        while item.arc is not None:
+            words.insert(0, item.arc.label)
+            item = item.prev
+
+        print self.sentno, finalitem.score, ' '.join(words).replace('<eps>','').replace('_', ' ').strip()
+
+
+    def walk(self, scorer = None, normalize = False, verbose = False):
 
         if scorer is None:
             scorer = self

@@ -34,7 +34,7 @@ from arcscorer import ArcScorer
 from lattice import *
 
 def main(models, source_file, graph_file, begin, end, saveto, search_type ,b=80,
-         normalize=False, verbose=False, alignweights=False):
+         normalize=False, beam=12, verbose=False, alignweights=False):
 
     sourcelines = source_file.readlines()
 
@@ -58,16 +58,16 @@ def main(models, source_file, graph_file, begin, end, saveto, search_type ,b=80,
             graph_files.append(graph_file.format(sentno))
 
     for i, graph_file in enumerate(graph_files, start=begin):
-        print "[{}] Processing graph file {}...".format(i, graph_file)
+        if verbose: print "[{}] Processing graph file {}...".format(i, graph_file)
         graph = read_graph(open(graph_file), i)
 
         if (scorer):
             scorer.set_source_sentence(sourcelines[i])
 
         if search_type == 'complete':
-            graph.walk(scorer)
+            graph.walk(scorer, verbose = verbose)
         elif search_type == 'stack':
-            graph.beam_search(scorer)
+            graph.beam_search(scorer, verbose = verbose, beam = beam)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -91,8 +91,10 @@ if __name__ == "__main__":
                         help="First sentence number")
     parser.add_argument('-t', dest='end', type=int, default=999999,
                         help="Last sentence number")
+    parser.add_argument('--beam', dest='beam', type=int, default=12,
+                        help="The beam size for stack decoing")
     parser.add_argument('--search', choices=['complete','stack'], default='complete', help="Search method")
     args = parser.parse_args()
 
     main(args.models, args.source, args.input, args.begin, args.end, args.output, 
-         args.search, b=args.b, normalize=args.n, verbose=args.v, alignweights=args.walign)
+         args.search, b=args.b, normalize=args.n, beam=args.beam, verbose=args.v, alignweights=args.walign)
