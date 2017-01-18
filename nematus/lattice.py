@@ -81,7 +81,7 @@ class Graph:
 
             
 
-    def walk(self, scorer = None, normalize = True):
+    def walk(self, scorer = None, normalize = True, verbose = False):
 
         class BestItem:
             '''Data structure for recording best item in graph'''
@@ -104,7 +104,7 @@ class Graph:
         # for each node, the best state, the word that produced it, and the cumulative score
         bestitems = {}
         for node in self.nodelist:
-            print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
+            if verbose: print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
             
             best = BestItem()
             for arc in node.getIncomingArcs():
@@ -115,21 +115,21 @@ class Graph:
                 score = oldscore + transitioncost
                 pathLength = prevBest.pathLength + arc.numWords()
 
-                print '  {} -> {}'.format(arc, score)
+                if verbose: print '  {} -> {}'.format(arc, score)
                 if normalize:
                     normalizedScore = score / float(pathLength)
                     if normalizedScore > best.normalizedScore():
-                        print '  new best ({} > {})'.format(normalizedScore, best.score)
+                        if verbose: print '  new best ({} > {})'.format(normalizedScore, best.score)
                         best = BestItem(score, newstate, arc, pathLength)
 
                 else:
                     if score > best.score:
-                        print '  new best ({} > {})'.format(score, best.score)
+                        if verbose: print '  new best ({} > {})'.format(score, best.score)
                         best = BestItem(score, newstate, arc, pathLength)
 
             if best.arc is not None:
                 bestitems[node] = best
-                #print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
+                if verbose: print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
 
         # Now follow the backpointers to construct the final sentence
         finalnode = self.node(self.finalstate)
