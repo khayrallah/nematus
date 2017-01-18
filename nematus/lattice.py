@@ -2,6 +2,8 @@
 Lattice class. This represents a lattice. It supports loading from an OpenFST file.
 """
 
+from heapq import *
+
 class Arc:
     head = None
     tail = None
@@ -38,6 +40,8 @@ class Node:
     def getIncomingArcs(self):
         return self.inarcs
 
+    def getOutgoingArcs(self):
+        return self.outarcs
 
 class BestItem:
     '''Data structure for recording best item in graph'''
@@ -47,6 +51,9 @@ class BestItem:
         self.state = state
         self.arc = arc
         self.pathLength = pathLength
+
+    def __lt__(self, other):
+        return self.score < other.score
 
     def normalizedScore(self):
         if self.pathLength > 0:
@@ -95,6 +102,50 @@ class Graph:
     def score(self, state, arc):
         """The default scoring option. Returns the score read in on the arc, ignoring the old state and not returning a new one."""
         return None, arc.score
+
+    def beam_search(self, scorer = None, verbose = True, beam = 12):
+        '''
+        Performs beam search over the search graph. Paths are grouped by how many target words they represent, 
+        and cube pruning is applied to each.
+        '''
+        if scorer is None:
+            scorer = self
+
+        heaps = []
+        heaps.append([ BestItem(score = 0.) ])
+
+        # iterate over the stacks
+        stackno = 0
+        while len(heaps[stackno]) > 0:
+            heap = heaps[stackno]
+            stackno += 1
+
+            # Pop items off the stack, extending hypotheses and adding them into later stacks
+            beam_i = 0
+            while beam_i < beam and len(heap) > 0:
+                beam_i += 1
+
+                # Get the next item
+                item = heappop(heap)
+                if item.arc is not None:
+                    node = item.arc.head
+                else:
+                    node = self.nodelist[0]
+
+                # Add its extensions
+                for arc in node.getOutgoingArcs():
+                    newstate, transitioncost = scorer.score(item.state, arc)
+                    score = item.score + transitioncost
+                    pathLength = item.pathLength + arc.numWords()
+
+                    nextstackno = stackno + arc.numWords()
+                    while len(heaps) <= nextstackno:
+                        heaps.append([])
+
+                    heappush(heaps[nextstackno], BestItem(score, newstate, arc, pathLength))
+
+                    if verbose: print '  {} -> {}'.format(arc, score)
+                
 
     def walk(self, scorer = None, normalize = True, verbose = False):
 

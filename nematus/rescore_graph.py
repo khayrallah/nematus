@@ -33,7 +33,7 @@ import theano
 from arcscorer import ArcScorer
 from lattice import *
 
-def main(models, source_file, graph_file, begin, end, saveto, b=80,
+def main(models, source_file, graph_file, begin, end, saveto, search_type ,b=80,
          normalize=False, verbose=False, alignweights=False):
 
     sourcelines = source_file.readlines()
@@ -64,7 +64,10 @@ def main(models, source_file, graph_file, begin, end, saveto, b=80,
         if (scorer):
             scorer.set_source_sentence(sourcelines[i])
 
-        graph.walk(scorer)
+        if search_type == 'complete':
+            graph.walk(scorer)
+        elif search_type == 'stack':
+            graph.beam_search(scorer)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -88,8 +91,8 @@ if __name__ == "__main__":
                         help="First sentence number")
     parser.add_argument('-t', dest='end', type=int, default=999999,
                         help="Last sentence number")
-
+    parser.add_argument('--search', choices=['complete','stack'], default='complete', help="Search method")
     args = parser.parse_args()
 
-    main(args.models, args.source, args.input, args.begin, args.end,
-         args.output, b=args.b, normalize=args.n, verbose=args.v, alignweights=args.walign)
+    main(args.models, args.source, args.input, args.begin, args.end, args.output, 
+         args.search, b=args.b, normalize=args.n, verbose=args.v, alignweights=args.walign)
