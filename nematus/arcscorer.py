@@ -136,7 +136,7 @@ class ArcScorer(object):
 
         logprob = 0.0
         nmt_state, prev_word = state['nmt_state'], state['prev_word']
-        words = arc.label.split('_') # there may be multiple words in an arc, so process each successively
+        words = arc.words() # there may be multiple words in an arc, so process each successively
         for word_str in words:
 
             # if label is epsilon, do nothing (logprob+=0); else run NMT step

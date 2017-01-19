@@ -14,6 +14,7 @@ import re
 import sys
 import argparse
 import tempfile
+import codecs
 
 import numpy
 import json
@@ -32,6 +33,12 @@ import theano
 
 from arcscorer import ArcScorer
 from lattice import *
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+sys.stdin = codecs.getreader('utf-8')(sys.stdin)
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+sys.stdout.encoding = 'utf-8'
 
 def main(models, source_file, graph_file_pattern, begin, end, saveto, search_type ,b=80,
          normalize=False, beam=12, verbose=False, alignweights=False):
@@ -59,9 +66,12 @@ def main(models, source_file, graph_file_pattern, begin, end, saveto, search_typ
             scorer.set_source_sentence(sourcelines[sentno])
 
         if search_type == 'complete':
-            graph.walk(scorer, verbose = verbose)
+            result = graph.walk(scorer, verbose = verbose)
         elif search_type == 'stack':
-            graph.beam_search(scorer, verbose = verbose, beam = beam)
+            result = graph.beam_search(scorer, verbose = verbose, beam = beam)
+
+        print result
+        sys.stdout.flush()
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

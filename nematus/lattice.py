@@ -4,6 +4,8 @@ Lattice class. This represents a lattice. It supports loading from an OpenFST fi
 
 from heapq import *
 
+WORD_DELIM='|'
+
 class Arc:
     head = None
     tail = None
@@ -19,8 +21,11 @@ class Arc:
         self.head = head
         self.score = float(score)
 
+    def words(self):
+        return self.label.split(WORD_DELIM)
+
     def numWords(self):
-        return len(self.label.split('_'))
+        return len(self.words())
 
 class Node:
     def __init__(self, id = 0):
@@ -170,7 +175,8 @@ class Graph:
             words.insert(0, item.arc.label)
             item = item.prev
 
-        print self.sentno, finalitem.score, ' '.join(words).replace('<eps>','').replace('_', ' ').strip()
+        result = self.sentno, finalitem.score, ' '.join(words).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
+        return result
 
 
     def walk(self, scorer = None, normalize = False, verbose = False):
@@ -216,7 +222,9 @@ class Graph:
             seq.insert(0, arc.label)
             node = arc.tail
 
-        print self.sentno, bestitems.get(finalnode).score, ' '.join(seq).replace('<eps>','').replace('_', ' ').strip()
+
+        result = self.sentno, bestitems.get(finalnode).score, ' '.join(seq).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
+        return result
 
 
 def read_graph(search_graph_file, sentno = 0):
