@@ -33,7 +33,7 @@ import theano
 from arcscorer import ArcScorer
 from lattice import *
 
-def main(models, source_file, graph_file, begin, end, saveto, search_type ,b=80,
+def main(models, source_file, graph_file_pattern, begin, end, saveto, search_type ,b=80,
          normalize=False, beam=12, verbose=False, alignweights=False):
 
     sourcelines = source_file.readlines()
@@ -42,27 +42,21 @@ def main(models, source_file, graph_file, begin, end, saveto, search_type ,b=80,
     if models is not None and len(models) > 0:
         scorer = ArcScorer(models[0])
 
-    graph_files = []
-    if not '{}' in graph_file:
+    if not '{}' in graph_file_pattern:
         print "* FATAL: no {} pattern found in file spec"
         sys.exit(1)
-        sentno = 0
-        while os.path.exists(graph_file.format(sentno)):
-            graph_files.append(graph_file.format(sentno))
-            sentno += 1
-    else:
-        for sentno in range(begin, end+1):
-            if not os.path.exists(graph_file.format(sentno)):
-                print "* FATAL: couldn't find file", graph_file.format(sentno)
-                sys.exit(1)
-            graph_files.append(graph_file.format(sentno))
 
-    for i, graph_file in enumerate(graph_files, start=begin):
+    for sentno in range(begin, end+1):
+        if not os.path.exists(graph_file.format(sentno)):
+            print "* FATAL: couldn't find file", graph_file.format(sentno)
+            sys.exit(1)
+
+        graph_file = graph_file_pattern.format(sentno)
         if verbose: print "[{}] Processing graph file {}...".format(i, graph_file)
-        graph = read_graph(open(graph_file), i)
+        graph = read_graph(open(graph_file), sentno)
 
         if (scorer):
-            scorer.set_source_sentence(sourcelines[i])
+            scorer.set_source_sentence(sourcelines[sentno])
 
         if search_type == 'complete':
             graph.walk(scorer, verbose = verbose)
