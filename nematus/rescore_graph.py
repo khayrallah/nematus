@@ -47,8 +47,8 @@ def main(models, source_file, graph_file_pattern, begin, end, saveto, search_typ
         sys.exit(1)
 
     for sentno in range(begin, end+1):
-        if not os.path.exists(graph_file.format(sentno)):
-            print "* FATAL: couldn't find file", graph_file.format(sentno)
+        if not os.path.exists(graph_file_pattern.format(sentno)):
+            print "* FATAL: couldn't find file", graph_file_pattern.format(sentno)
             sys.exit(1)
 
         graph_file = graph_file_pattern.format(sentno)
