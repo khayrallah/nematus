@@ -115,7 +115,7 @@ class ArcScorer(object):
         Given a source sentence, it creates the initial NMT decoder state (self.nmt_state_init) as well as the bidirectional RNN encoding of the input context (self.nmt_context) by running f_init
         '''
         seq = self.src_sentence2id(sentence)
-        sys.stderr.write("Set NMT src sent: {} {} ({} words)\n".format(sentence, seq, len(seq)))
+        sys.stderr.write("Set NMT src sent: {} {} ({} words)\n".format(sentence, seq, len(sentence.split())))
         self.source_sentence = numpy.array(seq).T.reshape([len(seq[0]), len(seq), 1])
         self.nmt_state_init, input_rep = self.f_init(self.source_sentence)
         self.nmt_context = numpy.tile(input_rep, [1, 1])
