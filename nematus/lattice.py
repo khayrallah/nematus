@@ -174,6 +174,8 @@ class Graph:
         while item.arc is not None:
             words.insert(0, item.arc.label)
             item = item.prev
+            if verbose:
+                print "BESTARC: {}".format(item.arc)
 
         result = self.sentno, finalitem.score, ' '.join(words).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
         return result
@@ -221,7 +223,8 @@ class Graph:
             arc = bestitems.get(node).arc
             seq.insert(0, arc.label)
             node = arc.tail
-
+            if verbose:
+                print "BESTARC: {}".format(arc)
 
         result = self.sentno, bestitems.get(finalnode).score, ' '.join(seq).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
         return result

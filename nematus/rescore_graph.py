@@ -55,11 +55,11 @@ def main(models, source_file, graph_file_pattern, begin, end, saveto, search_typ
 
     for sentno in range(begin, end+1):
         if not os.path.exists(graph_file_pattern.format(sentno)):
-            print "* FATAL: couldn't find file", graph_file_pattern.format(sentno)
-            sys.exit(1)
+            sys.stderr.write("* WARNING: couldn't find file {}\n".format(graph_file_pattern.format(sentno)))
+            print sentno, '-Infinity', 'NULL'
 
         graph_file = graph_file_pattern.format(sentno)
-        if verbose: print "[{}] Processing graph file {}...".format(i, graph_file)
+        if verbose: print "[{}] Processing graph file {}...".format(sentno, graph_file)
         graph = read_graph(open(graph_file), sentno)
 
         if (scorer):
@@ -70,7 +70,7 @@ def main(models, source_file, graph_file_pattern, begin, end, saveto, search_typ
         elif search_type == 'stack':
             result = graph.beam_search(scorer, verbose = verbose, beam = beam)
 
-        print result
+        print result[0], result[1], result[2]
         sys.stdout.flush()
     
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ class ArcScorer(object):
         '''
         options = []
         try:
-            print 'Loading %s.json' % model
+            sys.stderr.write('Loading {}.json'.format(model))
             with open('%s.json' % model, 'rb') as f:
                 options.append(json.load(f))
         except:
@@ -115,7 +115,7 @@ class ArcScorer(object):
         Given a source sentence, it creates the initial NMT decoder state (self.nmt_state_init) as well as the bidirectional RNN encoding of the input context (self.nmt_context) by running f_init
         '''
         seq = self.src_sentence2id(sentence)
-        print "Set NMT src sent:", sentence, seq
+        sys.stderr.write("Set NMT src sent: {} {} ({} words)\n".format(sentence, seq, len(seq)))
         self.source_sentence = numpy.array(seq).T.reshape([len(seq[0]), len(seq), 1])
         self.nmt_state_init, input_rep = self.f_init(self.source_sentence)
         self.nmt_context = numpy.tile(input_rep, [1, 1])
