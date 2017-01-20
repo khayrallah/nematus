@@ -65,18 +65,23 @@ class BestItem:
         """Actually returns greater than."""
         return self.score > other.score
 
+    # def __hash__(self):
+    #     return hash((self.state, self.arc))
+
+    # def __eq__(self, other):
+    #     return (self.state, self.arc) == (other.state, other.arc)
+
     def normalizedScore(self):
         if self.pathLength > 0:
             return self.score / float(self.pathLength)
         else:
             return self.score
 
-
 class Graph:
     def __str__(self):
         return `self.sentno`
 
-    def __init__(self, sentno):
+    def __init__(self, sentno, search_graph_file = None):
         self.sentno = sentno
         self.root = None
         self.nodelist = []
@@ -84,6 +89,34 @@ class Graph:
         self.finalstate = -1
         self.nodes = {}
         self.root = self.node(0)
+
+        if search_graph_file is not None:
+            self.read_graph(search_graph_file)
+
+    def read_graph(self, search_graph_file):
+        """
+        Reads an OpenFST file and constructs a walkable graph.
+        """
+
+        for line in search_graph_file:
+            try:
+                tail, head, source, target = line.rstrip().split(' ', 3)
+            except ValueError:
+                self.finalstate = int(line.rstrip())
+
+            if ' ' in target:
+                target, score = target.split(' ')
+            else:
+                score = 0.0
+
+            tail = int(tail)
+            head = int(head)
+            self.addArc(tail, target, head, -float(score))
+
+        self.nodelist = sorted(self.nodelist, cmp=lambda x, y: cmp(x.id, y.id))
+
+    #    print "graph[->{}] {} has {} nodes and {} arcs".format(graph.finalstate, graph.id(), graph.numnodes(), graph.numarcs())
+
 
     def id(self):
         return self.sentno
@@ -228,28 +261,3 @@ class Graph:
 
         result = self.sentno, bestitems.get(finalnode).score, ' '.join(seq).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
         return result
-
-
-def read_graph(search_graph_file, sentno = 0):
-    """
-    Reads an OpenFST file and constructs a walkable graph.
-    """
-
-    graph = Graph(sentno)
-    for line in search_graph_file:
-        try:
-            tail, head, source, target = line.rstrip().split(' ', 3)
-        except ValueError:
-            graph.finalstate = int(line.rstrip())
-
-        if ' ' in target:
-            target, score = target.split(' ')
-        else:
-            score = 0.0
-
-        tail = int(tail)
-        head = int(head)
-        graph.addArc(tail, target, head, -float(score))
-
-#    print "graph[->{}] {} has {} nodes and {} arcs".format(graph.finalstate, graph.id(), graph.numnodes(), graph.numarcs())
-    return graph

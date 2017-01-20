@@ -60,7 +60,7 @@ def main(models, source_file, graph_file_pattern, begin, end, saveto, search_typ
 
         graph_file = graph_file_pattern.format(sentno)
         if verbose: print "[{}] Processing graph file {}...".format(sentno, graph_file)
-        graph = read_graph(open(graph_file), sentno)
+        graph = Graph(sentno, open(graph_file))
 
         if (scorer):
             scorer.set_source_sentence(sourcelines[sentno])
