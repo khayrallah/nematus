@@ -97,7 +97,7 @@ class ArcScorer(object):
         
     def src_sentence2id(self, sentence):
         '''Convert source sentence into sequence of id's'''
-        return [[self.word_dict[w] if w in self.word_dict else 1 for w in sentence.strip().split()]]
+        return [[self.word_dict[w]] if w in self.word_dict else 1 for w in sentence.strip().split()]
 
 
     def trg_id2sentence(self, id_list):
@@ -114,7 +114,7 @@ class ArcScorer(object):
         '''This function needs to be called before running score()
         Given a source sentence, it creates the initial NMT decoder state (self.nmt_state_init) as well as the bidirectional RNN encoding of the input context (self.nmt_context) by running f_init
         '''
-        seq = self.src_sentence2id(sentence)
+        seq = self.src_sentence2id(sentence) + [[0]]
         sys.stderr.write("Set NMT src sent: {} {} ({} words)\n".format(sentence, seq, len(sentence.split())))
         self.source_sentence = numpy.array(seq).T.reshape([len(seq[0]), len(seq), 1])
         self.nmt_state_init, input_rep = self.f_init(self.source_sentence)
@@ -147,6 +147,9 @@ class ArcScorer(object):
                 else:
                     # NOTE: we might want to throw an exception rather than process UNK, depending on situation
                     word = self.word_dict_trg["UNK"]
+                if word_str == '<eos>':
+                    # NOTE: special processing for <eos>. Double-check other solution
+                    word = 0 
 
                 # run one forward step of f_next(), 
                 # returns probability distribution of next word, most probable next word, and the new NMT state
