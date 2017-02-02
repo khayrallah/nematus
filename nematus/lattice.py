@@ -21,6 +21,12 @@ class Arc:
         self.head = head
         self.score = float(score)
 
+    def __hash__(self):
+        return hash(self.tail, self.label, self.head)
+
+    def __eq__(self, other):
+        return (self.tail, self.label, self.head) == (other.tail, other.label, other.head)
+
     def words(self):
         return self.label.split(WORD_DELIM)
 
@@ -35,6 +41,12 @@ class Node:
 
     def __str__(self):
         return 'NODE[{}]'.format(self.id)
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id
 
     def addOutgoingArc(self, arc):
         self.outarcs.append(arc)
@@ -100,12 +112,12 @@ class Graph:
 
         for line in search_graph_file:
             try:
-                tail, head, source, target = line.rstrip().split(' ', 3)
+                tail, head, source, target = line.rstrip().split(None, 3)
             except ValueError:
                 self.finalstate = int(line.rstrip())
 
-            if ' ' in target:
-                target, score = target.split(' ')
+            if len(target.split()) > 1:
+                target, score = target.split()
             else:
                 score = 0.0
 
@@ -145,6 +157,17 @@ class Graph:
     def score(self, state, arc):
         """The default scoring option. Returns the score read in on the arc, ignoring the old state and not returning a new one."""
         return None, arc.score
+
+    def extractBest(self, origitem, verbose = False):
+        words = []
+        item = origitem
+        while item.arc is not None:
+            words.insert(0, item.arc.label)
+            if verbose:
+                print "BESTARC: {}".format(item.arc)
+            item = item.prev
+
+        return self.sentno, origitem.score, ' '.join(words).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
 
     def beam_search(self, scorer = None, verbose = True, beam = 12):
         '''
@@ -202,15 +225,7 @@ class Graph:
             heapno += 1
 
         finalitem = heappop(finalitems)
-        item = finalitem
-        words = []
-        while item.arc is not None:
-            words.insert(0, item.arc.label)
-            item = item.prev
-            if verbose:
-                print "BESTARC: {}".format(item.arc)
-
-        result = self.sentno, finalitem.score, ' '.join(words).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
+        result = self.extractBest(finalitem, verbose)
         return result
 
 
@@ -224,7 +239,7 @@ class Graph:
         for node in self.nodelist:
             if verbose: print 'processing {} with {} incoming arcs'.format(node, len(node.getIncomingArcs()))
             
-            best = BestItem()
+            best = None
             for arc in node.getIncomingArcs():
                 prevBest = bestitems.get(arc.tail, BestItem(score = 0.))
                 oldscore, state = prevBest.score, prevBest.state
@@ -236,28 +251,25 @@ class Graph:
                 if verbose: print '  {} -> {}'.format(arc, score)
                 if normalize:
                     normalizedScore = score / float(pathLength)
-                    if normalizedScore > best.normalizedScore():
-                        if verbose: print '  new best ({} > {})'.format(normalizedScore, best.score)
-                        best = BestItem(score, newstate, arc, pathLength)
+                    if best is None or normalizedScore > best.normalizedScore():
+                        if verbose: 
+                            bestscore = best.normalizedScore() if best is not None else 0.
+                            print '  new best ({} > {})'.format(normalizedScore, bestscore)
+                        best = BestItem(score, newstate, arc, pathLength, prevBest)
 
                 else:
-                    if score > best.score:
-                        if verbose: print '  new best ({} > {})'.format(score, best.score)
-                        best = BestItem(score, newstate, arc, pathLength)
+                    if best is None or score > best.score:
+                        if verbose: 
+                            bestscore = best.score if best is not None else 0.
+                            print '  new best ({} > {})'.format(score, bestscore)
+                        best = BestItem(score, newstate, arc, pathLength, prevBest)
 
-            if best.arc is not None:
+            if best is not None:
                 bestitems[node] = best
                 if verbose: print 'best -> {} is {} ({})'.format(best.arc.head, best.arc.label, best.arc.score)
 
         # Now follow the backpointers to construct the final sentence
         finalnode = self.node(self.finalstate)
-        seq = []
-        while node.id != 0:
-            arc = bestitems.get(node).arc
-            seq.insert(0, arc.label)
-            node = arc.tail
-            if verbose:
-                print "BESTARC: {}".format(arc)
-
-        result = self.sentno, bestitems.get(finalnode).score, ' '.join(seq).replace('<eps>','').replace(WORD_DELIM, ' ').strip()
+        finalitem = bestitems[finalnode]
+        result = self.extractBest(finalitem, verbose)
         return result
