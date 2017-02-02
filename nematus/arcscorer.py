@@ -97,7 +97,7 @@ class ArcScorer(object):
         
     def src_sentence2id(self, sentence):
         '''Convert source sentence into sequence of id's'''
-        return [[self.word_dict[w]] if w in self.word_dict else 1 for w in sentence.strip().split()]
+        return [[self.word_dict[w]] if w in self.word_dict else [1] for w in sentence.strip().split()]
 
 
     def trg_id2sentence(self, id_list):
