@@ -47,6 +47,9 @@ def main(models, source_file, graph_file_pattern, begin, end, saveto, search_typ
 
     scorer = None
     if models is not None and len(models) > 0:
+        if len(models) > 1:
+            sys.stderr.write("* WARNING: only using first model for now")
+
         scorer = ArcScorer(models[0])
 
     if not '{}' in graph_file_pattern:

@@ -7,7 +7,8 @@ import json
 import numpy
 from theano_util import (load_params, init_theano_params)
 from nmt import (build_sampler, pred_probs, build_model, prepare_data, init_params, gen_sample)
-from util import load_dict
+from util import load_dict, load_config
+from compat import fill_options
 import theano
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
@@ -27,27 +28,9 @@ class ArcScorer(object):
         For all these, we assume there is only one version, i.e. no ensemble
         '''
         options = []
-        try:
-            sys.stderr.write('Loading {}.json'.format(model))
-            with open('%s.json' % model, 'rb') as f:
-                options.append(json.load(f))
-        except:
-            with open('%s.pkl' % model, 'rb') as f:
-                options.append(pkl.load(f))
-
-        #hacks for using old models with missing options
-        if not 'dropout_embedding' in options[-1]:
-            options[-1]['dropout_embedding'] = 0
-        if not 'dropout_hidden' in options[-1]:
-            options[-1]['dropout_hidden'] = 0
-        if not 'dropout_source' in options[-1]:
-            options[-1]['dropout_source'] = 0
-        if not 'dropout_target' in options[-1]:
-            options[-1]['dropout_target'] = 0
-        if not 'factors' in options[-1]:
-            options[-1]['factors'] = 1
-        if not 'dim_per_factor' in options[-1]:
-            options[-1]['dim_per_factor'] = [options[-1]['dim_word']]
+        options.append(load_config(model))
+        # hacks for using old models with missing options
+        fill_options(options[-1])
 
         dictionaries = options[0]['dictionaries']
         dictionaries_source = dictionaries[:-1]
