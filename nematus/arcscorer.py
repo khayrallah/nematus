@@ -128,16 +128,28 @@ class ArcScorer(object):
                 if word_str in self.word_dict_trg:
                     word = self.word_dict_trg[word_str]
                 else:
-                    # NOTE: we might want to throw an exception rather than process UNK, depending on situation
-                    word = self.word_dict_trg["UNK"]
+                    # NOTE: we might want to throw an exception rather than process UNK
+                    word = self.word_dict_trg["UNK"] 
                 if word_str == '<eos>':
-                    # NOTE: special processing for <eos>. Double-check other solution
+                    # NOTE: special processing for <eos>.
                     word = 0 
 
                 # run one forward step of f_next(), 
                 # returns probability distribution of next word, most probable next word, and the new NMT state
                 inps = [prev_word, self.nmt_context, nmt_state]
                 probdist, word_prediction, nmt_state_next = self.f_next(*inps)
+
+
+
+		#when a word is not in the distribution, unk it manually (and write it out to stderr)
+		if word >=  len(probdist[0]):
+			sys.stderr.write(str(word)+"\t") 
+        	        sys.stderr.write(str(word_str)+"\t")  
+			sys.stderr.write(str(len(probdist[0]))+"\t")  
+                        sys.stderr.write(str(type(probdist[0]))+"\t") 
+			sys.stderr.write("ARRAY OUT OF BOUNDS"+"\n")  
+			word = self.word_dict_trg["UNK"]
+
 
                 # accumulate log probabilities
                 logprob += numpy.log(probdist[0][word])
