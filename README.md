@@ -1,5 +1,20 @@
 NEMATUS
 -------
+This fork of Nematus contains the code for:
+Neural Lattice Search for Domain Adaptation in Machine Translation
+Huda Khayrallah Gaurav Kumar Kevin Duh Matt Post Philipp Koehn
+{huda, gkumar, kevinduh, post, phi}@cs.jhu.edu
+
+
+USAGE:
+decoding can be perfomed with an existing nematus model. 
+
+Rescoring of a Moses word graph using a translation model is performed with: nematus/rescore_graph.py
+The Moses word graph is obtained by adding the flags "-osg <FILE>" to Moses. 
+It then must be converted to fst format using: scripts/gen_lattice.sh
+
+-------
+
 
 Attention-based encoder-decoder model for neural machine translation
 
